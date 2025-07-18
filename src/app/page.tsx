@@ -40,15 +40,6 @@ export default function AthleteShowcase() {
 
   const { scrollYProgress } = useScroll()
   const heroY = useTransform(scrollYProgress, [0, 0.2], [0, -100])
-  const parallaxY = useTransform(scrollYProgress, [0, 1], [0, -150])
-  const parallaxY2 = useTransform(scrollYProgress, [0, 1], [0, -200])
-  const parallaxY3 = useTransform(scrollYProgress, [0, 1], [0, -250])
-  const rotation = useTransform(scrollYProgress, [0, 1], [0, 360])
-  const rotationReverse = useTransform(scrollYProgress, [0, 1], [0, -360])
-  const scale = useTransform(scrollYProgress, [0, 0.5], [1, 1.2])
-  const scaleDown = useTransform(scrollYProgress, [0, 0.5], [1, 0.8])
-  const fadeOut = useTransform(scrollYProgress, [0, 0.2], [1, 0])
-  const fadeIn = useTransform(scrollYProgress, [0, 0.2], [0, 1])
   const smoothProgress = useSpring(scrollYProgress, {
     stiffness: 100,
     damping: 30,
@@ -362,7 +353,7 @@ export default function AthleteShowcase() {
   }
 
   // Fix the renderAthleteCard function by adding type annotations
-  const renderAthleteCard = (index: number, image: string, position?: string) => (
+  const renderAthleteCard = (index: number, image: string) => (
     <motion.div
       key={`athlete-${index}`}
       whileHover={{
@@ -1596,7 +1587,7 @@ export default function AthleteShowcase() {
                     </motion.h3>
                     <p className="text-[#0f0f1a]">
                       Athletes will explore cutting-edge strategies to elevate their personal brands and maximize their
-                      NIL potential. They'll engage with coaches, collectives, brands, agents and industry experts,
+                      NIL potential. They&aposll engage with coaches, collectives, brands, agents and industry experts,
                       building connections that drive future commercial success.
                     </p>
                   </motion.div>
@@ -1641,7 +1632,7 @@ export default function AthleteShowcase() {
               animate={inViewStates.timeline ? animations.staggerContainer.visible : animations.staggerContainer.hidden}
               className="grid grid-cols-4 gap-4 mb-8"
             >
-              {["anthropometric", "performance", "science", "drills"].map((item, index) => (
+              {["anthropometric", "performance", "science", "drills"].map((item) => (
                 <motion.button
                   key={item}
                   variants={animations.scaleUp}
@@ -1922,7 +1913,7 @@ export default function AthleteShowcase() {
                   transition={{ delay: 0.3 }}
                   className="text-gray-400 text-center max-w-md mb-10"
                 >
-                  Join the list of college sports fans who are rooting for their team to land the nation's best
+                  Join the list of college sports fans who are rooting for their team to land the nation&aposs best
                   prospects.
                 </motion.p>
                 <motion.div
@@ -1953,7 +1944,7 @@ export default function AthleteShowcase() {
                   animate={inViewStates.cta ? animations.fadeIn.visible : animations.fadeIn.hidden}
                   className="text-5xl md:text-6xl uppercase mb-8 font-display text-center leading-tight text-[#1a1a2e]"
                 >
-                  {["ARE YOU AN", "ATHLETE LOOKING", "TO INCREASE YOUR", "NIL?"].map((text, i) => (
+                  {["ARE YOU AN", "ATHLETE LOOKING", "TO INCREASE YOUR", "NIL?"].map((text) => (
                     <motion.span
                       key={text}
                       animate={{
