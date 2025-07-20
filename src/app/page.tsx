@@ -2,11 +2,17 @@
 
 import React from "react"
 
-import { useState, useEffect, useRef } from "react"
-import { motion, useScroll, useTransform, useInView, AnimatePresence, useSpring } from "framer-motion"
-import { ChevronRight, Menu, Ruler, ArrowUp, Star, Sparkles, Award } from 'lucide-react'
+import { useState, useEffect, useRef, useCallback } from "react"
+import { motion, useScroll, useTransform, useInView, AnimatePresence, useSpring, type MotionValue } from "framer-motion"
+import { ChevronRight, Menu, Ruler, ArrowUp, Star, Sparkles, Award } from "lucide-react"
+import { Suspense, lazy } from "react"
 
-export default function AthleteShowcase() {
+// Lazy load the main component
+const AthleteShowcaseMain = lazy(() => Promise.resolve({ default: AthleteShowcaseContent }))
+
+// Move the existing AthleteShowcase component content into AthleteShowcaseContent
+function AthleteShowcaseContent() {
+  // Move all the existing component logic here (everything that's currently in AthleteShowcase)
   const [days, setDays] = useState(3)
   const [hours, setHours] = useState(12)
   const [minutes, setMinutes] = useState(40)
@@ -391,6 +397,84 @@ export default function AthleteShowcase() {
     </motion.div>
   )
 
+  const useParallax = (value: MotionValue<number>, distance: number) => {
+    return useTransform(value, [0, 1], [-distance, distance])
+  }
+
+  const { scrollYProgress: pricingYProgress } = useScroll()
+  // const pricingParallax = useParallax(pricingYProgress, 100)
+
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [showLoginModal, setShowLoginModal] = useState(false)
+  const [savedItems, setSavedItems] = useState<any[]>([])
+  const [toast, setToast] = useState({ message: "", type: "success", visible: false })
+
+  const showToast = useCallback(
+    (message: string, type: "success" | "error" = "success") => {
+      setToast({ message, type, visible: true })
+      setTimeout(() => {
+        setToast({ ...toast, visible: false })
+      }, 3000)
+    },
+    [toast],
+  )
+
+  const handleSaveItem = useCallback(
+    (item: any) => {
+      if (!isLoggedIn) {
+        setShowLoginModal(true)
+        return
+      }
+      if (savedItems.some((savedItem) => savedItem.id === item.id)) {
+        setSavedItems(savedItems.filter((savedItem) => savedItem.id !== item.id))
+        showToast("Removed from saved items")
+      } else {
+        setSavedItems([...savedItems, item])
+        showToast("Added to saved items")
+      }
+    },
+    [isLoggedIn, savedItems, showToast],
+  )
+
+  // Add mobile menu state
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+
+  // Add mobile-specific CSS
+  const mobileStyles = `
+  @media (max-width: 768px) {
+    .scrollbar-hide {
+      -webkit-overflow-scrolling: touch;
+    }
+    
+    .perspective-container {
+      perspective: 800px;
+    }
+    
+    .tilt-effect:hover {
+      transform: none;
+    }
+    
+    .shine-effect::after {
+      animation: none;
+    }
+    
+    .float-animation {
+      animation: none;
+    }
+    
+    .pulse-animation {
+      animation: pulse 3s infinite;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .container {
+      padding-left: 1rem;
+      padding-right: 1rem;
+    }
+  }
+`
+
   return (
     <>
       <style jsx global>{`
@@ -719,6 +803,8 @@ export default function AthleteShowcase() {
           opacity: 0.05;
           pointer-events: none;
         }
+
+        ${mobileStyles}
       `}</style>
 
       <motion.div className="progress-bar" style={{ scaleX: smoothProgress }} />
@@ -728,35 +814,43 @@ export default function AthleteShowcase() {
           initial={{ y: -100, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.5, ease: "easeOut" }}
-          className={`w-full py-4 fixed z-[100] transition-all duration-500 ${
+          className={`w-full py-3 md:py-4 fixed z-[100] transition-all duration-500 ${
             scrolled ? "bg-[#1e1e2a] shadow-lg" : "bg-transparent"
           }`}
         >
-          <div className="container mx-auto px-6 flex justify-between items-center">
+          <div className="container mx-auto px-4 md:px-6 flex justify-between items-center">
             <motion.div
               whileHover={{ rotate: 360, scale: 1.1 }}
               transition={{ duration: 0.5 }}
-              className="bg-white p-3 rounded-full glow-effect"
+              className="bg-white p-2 md:p-3 rounded-full glow-effect"
             >
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <svg
+                width="20"
+                height="20"
+                className="md:w-6 md:h-6"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
                 <path d="M12 2L4 7L12 12L20 7L12 2Z" fill="#1e1e2a" />
                 <path d="M4 12L12 17L20 12" fill="#1e1e2a" />
               </svg>
             </motion.div>
 
+            {/* Desktop Navigation */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.2, duration: 0.5 }}
-              className="bg-opacity-40 backdrop-blur-md rounded-full px-8 py-3 glass-effect"
+              className="hidden md:block bg-opacity-40 backdrop-blur-md rounded-full px-8 py-3 glass-effect"
             >
               <div className="flex items-center space-x-8">
                 {["Featured Athletes", "About", "Activities", "Timeline", "Location"].map((item, index) => (
                   <motion.a
                     key={item}
                     whileHover={{ scale: 1.1, color: "#c4e53e" }}
-                    href={`#${item.toLowerCase()}`}
-                    className={`font-medium ${index === 0 ? "text-[#c4e53e]" : "text-white"}`}
+                    href={`#${item.toLowerCase().replace(" ", "-")}`}
+                    className={`font-medium text-sm lg:text-base ${index === 0 ? "text-[#c4e53e]" : "text-white"}`}
                   >
                     {item}
                   </motion.a>
@@ -768,30 +862,74 @@ export default function AthleteShowcase() {
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="bg-white text-black px-6 py-3 rounded-full text-sm font-medium flex items-center shine-effect"
+                className="hidden md:flex bg-white text-black px-4 lg:px-6 py-2 lg:py-3 rounded-full text-xs lg:text-sm font-medium items-center shine-effect"
               >
-                Watch Live Stream
+                <span className="hidden lg:inline">Watch Live Stream</span>
+                <span className="lg:hidden">Watch Live</span>
                 <motion.div
                   whileHover={{ x: 5 }}
                   transition={{ type: "spring", stiffness: 400, damping: 10 }}
-                  className="ml-4 bg-white p-1 rounded-full shadow-md"
+                  className="ml-2 lg:ml-4 bg-white p-1 rounded-full shadow-md"
                 >
-                  <ChevronRight size={16} className="text-black" />
+                  <ChevronRight size={12} className="lg:w-4 lg:h-4 text-black" />
                 </motion.div>
               </motion.button>
-              <motion.div
+
+              {/* Mobile Menu Button */}
+              <motion.button
                 whileHover={{ scale: 1.1, rotate: 180 }}
+                whileTap={{ scale: 0.9 }}
                 transition={{ duration: 0.3 }}
-                className="md:hidden ml-4 text-white cursor-pointer"
+                className="md:hidden ml-4 text-white cursor-pointer p-2"
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               >
-                <Menu />
-              </motion.div>
+                <Menu size={24} />
+              </motion.button>
             </div>
           </div>
+
+          {/* Mobile Menu */}
+          <AnimatePresence>
+            {isMobileMenuOpen && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3 }}
+                className="md:hidden bg-[#1e1e2a] border-t border-gray-700"
+              >
+                <div className="container mx-auto px-4 py-4 space-y-4">
+                  {["Featured Athletes", "About", "Activities", "Timeline", "Location"].map((item, index) => (
+                    <motion.a
+                      key={item}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                      href={`#${item.toLowerCase().replace(" ", "-")}`}
+                      className="block text-white hover:text-[#c4e53e] py-2 font-medium transition-colors"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      {item}
+                    </motion.a>
+                  ))}
+                  <motion.button
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.5 }}
+                    className="w-full bg-[#c4e53e] text-black py-3 rounded-full text-sm font-medium mt-4"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Watch Live Stream
+                  </motion.button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.nav>
 
         <section ref={sectionRefs.hero} className="relative h-screen bg-black text-white overflow-hidden">
-          {particles.map((particle) => (
+          {/* Keep particles but reduce count on mobile */}
+          {particles.slice(0, window.innerWidth < 768 ? 25 : 50).map((particle) => (
             <motion.div
               key={particle.id}
               className="absolute rounded-full bg-[#c4e53e]"
@@ -819,6 +957,7 @@ export default function AthleteShowcase() {
             />
           ))}
 
+          {/* Update hero content for mobile */}
           <motion.div style={{ y: heroY }} className="absolute inset-0 overflow-hidden">
             <video
               className="absolute w-full h-full object-cover"
@@ -860,12 +999,12 @@ export default function AthleteShowcase() {
             transition={{ duration: 1.5 }}
           />
 
-          <div className="relative z-10 container mx-auto px-6 pt-40 pb-20 h-full flex flex-col justify-center">
+          <div className="relative z-10 container mx-auto px-4 md:px-6 pt-32 md:pt-40 pb-16 md:pb-20 h-full flex flex-col justify-center">
             <motion.p
               initial={{ opacity: 0, y: 20 }}
               animate={inViewStates.hero ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
               transition={{ duration: 0.6, delay: 0.2 }}
-              className="text-sm uppercase tracking-widest mb-2 font-medium"
+              className="text-xs md:text-sm uppercase tracking-widest mb-2 font-medium"
             >
               Transfer Portal
             </motion.p>
@@ -873,7 +1012,7 @@ export default function AthleteShowcase() {
               initial={{ opacity: 0, y: 30 }}
               animate={inViewStates.hero ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
               transition={{ duration: 0.8, delay: 0.4 }}
-              className="text-7xl uppercase mb-6 leading-none font-display"
+              className="text-4xl md:text-7xl uppercase mb-6 leading-none font-display"
             >
               ATHLETE
               <br />
@@ -900,25 +1039,25 @@ export default function AthleteShowcase() {
               initial={{ opacity: 0, y: 40 }}
               animate={inViewStates.hero ? { opacity: 1, y: 0 } : { opacity: 0, y: 40 }}
               transition={{ duration: 0.8, delay: 0.6 }}
-              className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-auto"
+              className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-auto mb-24" 
             >
               <motion.div
                 whileHover={{
                   scale: 1.03,
                   boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
                 }}
-                className="bg-opacity-90 backdrop-blur-sm rounded-xl p-6 flex items-center border border-black glass-effect"
+                className="bg-opacity-90 backdrop-blur-sm rounded-xl p-4 md:p-6 flex items-center border border-black glass-effect"
               >
                 <div className="flex-1">
-                  <h3 className="text-xl mb-1 font-display">JOIN THE LIVE STREAM</h3>
-                  <p className="text-sm text-gray-300">Be Part of the Transfer Portal</p>
+                  <h3 className="text-lg md:text-xl mb-1 font-display">JOIN THE LIVE STREAM</h3>
+                  <p className="text-xs md:text-sm text-gray-300">Be Part of the Transfer Portal</p>
                 </div>
                 <motion.div
                   whileHover={{ rotate: 360 }}
                   transition={{ duration: 0.5 }}
                   className="bg-white rounded-full p-2"
                 >
-                  <ChevronRight size={20} className="text-black" />
+                  <ChevronRight size={16} className="md:w-5 md:h-5 text-black" />
                 </motion.div>
               </motion.div>
 
@@ -928,7 +1067,7 @@ export default function AthleteShowcase() {
                     initial={{ opacity: 0 }}
                     animate={inViewStates.hero ? { opacity: 1 } : { opacity: 0 }}
                     transition={{ duration: 1, delay: 0.8 }}
-                    className="text-lg typewriter"
+                    className="text-sm md:text-lg"
                   >
                     Watch the top football transfer portal athletes perform live!
                   </motion.p>
@@ -936,18 +1075,26 @@ export default function AthleteShowcase() {
               </div>
             </motion.div>
 
+            {/* Mobile-optimized bottom cards */}
             <motion.div
               initial={{ opacity: 0, x: 50 }}
               animate={inViewStates.hero ? { opacity: 1, x: 0 } : { opacity: 0, x: 50 }}
               transition={{ duration: 0.8, delay: 1 }}
-              className="absolute bottom-8 right-8 bg-opacity-60 backdrop-blur-sm rounded-xl p-4 flex items-center border border-black glass-effect"
+              className="absolute bottom-15 md:bottom-20 right-4 md:right-8 bg-opacity-60 backdrop-blur-sm rounded-xl p-3 md:p-4 flex items-center border border-black glass-effect"
             >
               <motion.div
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
-                className="bg-[#c4e53e] rounded-full p-3 mr-4 pulse-animation"
+                className="bg-[#c4e53e] rounded-full p-2 md:p-3 mr-3 md:mr-4 pulse-animation"
               >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <svg
+                  width="16"
+                  height="16"
+                  className="md:w-6 md:h-6"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
                   <path
                     d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"
                     fill="#1e1e2a"
@@ -955,8 +1102,8 @@ export default function AthleteShowcase() {
                 </svg>
               </motion.div>
               <div className="bg-opacity-60 backdrop-blur-sm">
-                <h3 className="font-display">JANUARY 5TH, 2025</h3>
-                <p className="text-sm text-gray-300">Dragon Stadium in Southlake Texas</p>
+                <h3 className="text-sm md:text-base font-display">JAN 5TH, 2025</h3>
+                <p className="text-xs md:text-sm text-gray-300">Southlake Texas</p>
               </div>
             </motion.div>
 
@@ -964,13 +1111,13 @@ export default function AthleteShowcase() {
               initial={{ opacity: 0, y: 50 }}
               animate={inViewStates.hero ? { opacity: 1, y: 0 } : { opacity: 0, y: 50 }}
               transition={{ duration: 0.8, delay: 1.2 }}
-              className="absolute bottom-8 left-8 bg-opacity-60 backdrop-blur-sm rounded-xl p-4 glass-effect"
+              className="absolute bottom-15 md:bottom-20 left-4 md:left-8 bg-opacity-60 backdrop-blur-sm rounded-xl p-3 md:p-4 glass-effect"
             >
-              <div className="flex space-x-4">
+              <div className="flex space-x-2 md:space-x-4">
                 {[
                   { value: days, label: "DAYS", delay: 0 },
-                  { value: hours, label: "HOURS", delay: 0.3 },
-                  { value: minutes, label: "MINUTES", delay: 0.6 },
+                  { value: hours, label: "HRS", delay: 0.3 },
+                  { value: minutes, label: "MIN", delay: 0.6 },
                 ].map((item) => (
                   <motion.div
                     key={item.label}
@@ -983,7 +1130,7 @@ export default function AthleteShowcase() {
                       delay: item.delay,
                     }}
                   >
-                    <span className="text-4xl font-bold">{item.value}</span>
+                    <span className="text-2xl md:text-4xl font-bold">{item.value}</span>
                     <span className="text-xs text-gray-300">{item.label}</span>
                   </motion.div>
                 ))}
@@ -1025,12 +1172,12 @@ export default function AthleteShowcase() {
           </div>
         </div>
 
-        <section ref={sectionRefs.featured} id="featured" className="py-16 px-6 bg-white">
+        <section ref={sectionRefs.featured} id="featured" className="py-12 md:py-16 px-4 md:px-6 bg-white">
           <div className="container mx-auto">
             <motion.h2
               initial={animations.fadeIn.hidden}
               animate={inViewStates.featured ? animations.fadeIn.visible : animations.fadeIn.hidden}
-              className="text-6xl uppercase text-center mb-8 font-display"
+              className="text-4xl md:text-6xl uppercase text-center mb-6 md:mb-8 font-display"
             >
               <motion.span
                 animate={{
@@ -1065,18 +1212,19 @@ export default function AthleteShowcase() {
               initial={animations.fadeIn.hidden}
               animate={inViewStates.featured ? animations.fadeIn.visible : animations.fadeIn.hidden}
               transition={{ delay: 0.2 }}
-              className="text-center text-gray-600 max-w-3xl mx-auto mb-16 text-lg"
+              className="text-center text-gray-600 max-w-3xl mx-auto mb-12 md:mb-16 text-base md:text-lg px-4"
             >
               Meet some of the top athletes entering the Transfer Portal. These players represent the future of college
               sports, each with the talent, skill, and drive to excel on and off the field.
             </motion.p>
 
+            {/* Mobile-optimized athlete cards */}
             <div className="relative w-full overflow-hidden">
               <motion.div
                 initial={{ opacity: 0, x: -50 }}
                 animate={inViewStates.featured ? { opacity: 1, x: 0 } : { opacity: 0, x: -50 }}
                 transition={{ duration: 0.8, delay: 0.4 }}
-                className="flex overflow-x-auto pb-8 space-x-4 scrollbar-hide"
+                className="flex overflow-x-auto pb-6 md:pb-8 space-x-3 md:space-x-4 scrollbar-hide px-4 md:px-0"
               >
                 {[
                   "https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=1936&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
@@ -1087,9 +1235,44 @@ export default function AthleteShowcase() {
                   "https://images.unsplash.com/photo-1608245449230-4ac19066d2d0?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8YXRobGV0ZXxlbnwwfHwwfHx8MA%3D%3D",
                   "https://images.unsplash.com/photo-1622979857654-9363bb0a1243?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8OHx8YXRobGV0ZXxlbnwwfHwwfHx8MA%3D%3D",
                 ].map((image, index) => (
-                  <React.Fragment key={`athlete-card-${index}`}>
-                    {renderAthleteCard(index + 1, image)}
-                  </React.Fragment>
+                  <motion.div
+                    key={`athlete-${index}`}
+                    whileHover={{
+                      y: -10,
+                      boxShadow: "0 15px 20px -5px rgba(0, 0, 0, 0.1), 0 8px 8px -5px rgba(0, 0, 0, 0.04)",
+                    }}
+                    transition={{ type: "spring", stiffness: 300, damping: 15 }}
+                    className="flex-shrink-0 w-[240px] md:w-[280px] h-[360px] md:h-[420px] bg-[#0f0f1a] rounded-xl overflow-hidden relative perspective-container"
+                  >
+                    <motion.div
+                      whileHover={{ scale: 1.1 }}
+                      className="absolute top-2 right-2 bg-[#c4e53e] text-xs px-3 py-1 rounded-full z-10"
+                    >
+                      Redacted
+                    </motion.div>
+
+                    <motion.div
+                      className="h-full flex flex-col justify-between tilt-effect"
+                      whileHover={{ rotateY: 5, rotateX: 5 }}
+                    >
+                      <img
+                        src={image || "/placeholder.svg"}
+                        alt={`Athlete ${index}`}
+                        className="absolute inset-0 w-full h-full object-cover"
+                      />
+                      <div className="flex-1"></div>
+                      <motion.div
+                        whileHover={{ rotate: 0 }}
+                        className="relative py-8 w-full transform -rotate-6 bg-[#c4e53e] flex items-center justify-center"
+                      />
+                    </motion.div>
+
+                    <motion.div
+                      className="absolute inset-0 bg-gradient-to-t from-[#0f0f1a] to-transparent opacity-60"
+                      initial={{ opacity: 0 }}
+                      whileHover={{ opacity: 0.6 }}
+                    />
+                  </motion.div>
                 ))}
               </motion.div>
 
@@ -1951,7 +2134,7 @@ export default function AthleteShowcase() {
                         textShadow: [
                           "0 0 0px rgba(30, 30, 42, 0)",
                           "0 0 10px rgba(30, 30, 42, 0.5)",
-                          "0 0 0px rgba(30, 30, 42, 0)",
+                          "0 0 0px 30, 42, 0)",
                         ],
                       }}
                       transition={{
@@ -2024,17 +2207,100 @@ export default function AthleteShowcase() {
           {showScrollTop && (
             <motion.button
               onClick={scrollToTop}
-              className="fixed bottom-8 right-8 bg-[#c4e53e] text-black w-12 h-12 rounded-full flex items-center justify-center shadow-lg hover:bg-opacity-90 transition-all z-[999]"
+              className="fixed bottom-6 md:bottom-15 right-6 md:right-8 bg-[#c4e53e] text-black w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center shadow-lg hover:bg-opacity-90 transition-all z-[999] touch-manipulation"
               initial={{ opacity: 0, y: 50 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 50 }}
               transition={{ duration: 0.3 }}
+              whileTap={{ scale: 0.9 }}
             >
-              <ArrowUp size={24} />
+              <ArrowUp size={20} className="md:w-6 md:h-6" />
             </motion.button>
           )}
         </AnimatePresence>
       </div>
     </>
+  )
+}
+
+// Loading component - make mobile responsive
+function LoadingScreen() {
+  return (
+    <div className="fixed inset-0 bg-black flex items-center justify-center z-[9999] px-4">
+      <div className="text-center">
+        <motion.div
+          className="w-16 h-16 md:w-20 md:h-20 border-4 border-[#c4e53e] border-t-transparent rounded-full mx-auto mb-6 md:mb-8"
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
+        />
+        <motion.h1
+          className="text-2xl md:text-4xl font-display text-white mb-3 md:mb-4"
+          animate={{
+            opacity: [0.5, 1, 0.5],
+          }}
+          transition={{
+            duration: 2,
+            repeat: Number.POSITIVE_INFINITY,
+            ease: "easeInOut",
+          }}
+        >
+          ATHLETE SHOWCASE
+        </motion.h1>
+        <motion.p
+          className="text-[#c4e53e] text-sm md:text-lg px-4"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+        >
+          Loading the future of college sports...
+        </motion.p>
+        <motion.div
+          className="mt-6 md:mt-8 flex justify-center space-x-2"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1 }}
+        >
+          {[0, 1, 2].map((i) => (
+            <motion.div
+              key={i}
+              className="w-2 h-2 md:w-3 md:h-3 bg-[#c4e53e] rounded-full"
+              animate={{
+                scale: [1, 1.5, 1],
+                opacity: [0.5, 1, 0.5],
+              }}
+              transition={{
+                duration: 1.5,
+                repeat: Number.POSITIVE_INFINITY,
+                delay: i * 0.2,
+              }}
+            />
+          ))}
+        </motion.div>
+      </div>
+    </div>
+  )
+}
+
+// Main export component with lazy loading
+export default function AthleteShowcase() {
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    // Simulate loading time and ensure minimum loading duration
+    const timer = setTimeout(() => {
+      setIsLoading(false)
+    }, 2000) // Show loading for at least 2 seconds
+
+    return () => clearTimeout(timer)
+  }, [])
+
+  if (isLoading) {
+    return <LoadingScreen />
+  }
+
+  return (
+    <Suspense fallback={<LoadingScreen />}>
+      <AthleteShowcaseMain />
+    </Suspense>
   )
 }
