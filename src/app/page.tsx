@@ -2,8 +2,8 @@
 
 import React from "react"
 
-import { useState, useEffect, useRef, useCallback } from "react"
-import { motion, useScroll, useTransform, useInView, AnimatePresence, useSpring, type MotionValue } from "framer-motion"
+import { useState, useEffect, useRef} from "react"
+import { motion, useScroll, useTransform, useInView, AnimatePresence, useSpring } from "framer-motion"
 import { ChevronRight, Menu, Ruler, ArrowUp, Star, Sparkles, Award } from "lucide-react"
 import { Suspense, lazy } from "react"
 
@@ -359,82 +359,7 @@ function AthleteShowcaseContent() {
   }
 
   // Fix the renderAthleteCard function by adding type annotations
-  const renderAthleteCard = (index: number, image: string) => (
-    <motion.div
-      key={`athlete-${index}`}
-      whileHover={{
-        y: -15,
-        boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
-      }}
-      transition={{ type: "spring", stiffness: 300, damping: 15 }}
-      className="flex-shrink-0 w-[280px] h-[420px] bg-[#0f0f1a] rounded-xl overflow-hidden relative perspective-container"
-    >
-      <motion.div
-        whileHover={{ scale: 1.1 }}
-        className="absolute top-2 right-2 bg-[#c4e53e] text-xs px-3 py-1 rounded-full z-10"
-      >
-        Redacted
-      </motion.div>
-
-      <motion.div className="h-full flex flex-col justify-between tilt-effect" whileHover={{ rotateY: 5, rotateX: 5 }}>
-        <img
-          src={image || "/placeholder.svg"}
-          alt={`Athlete ${index}`}
-          className="absolute inset-0 w-full h-full object-cover"
-        />
-        <div className="flex-1"></div>
-        <motion.div
-          whileHover={{ rotate: 0 }}
-          className="relative py-8 w-full transform -rotate-6 bg-[#c4e53e] flex items-center justify-center"
-        />
-      </motion.div>
-
-      <motion.div
-        className="absolute inset-0 bg-gradient-to-t from-[#0f0f1a] to-transparent opacity-60"
-        initial={{ opacity: 0 }}
-        whileHover={{ opacity: 0.6 }}
-      />
-    </motion.div>
-  )
-
-  const useParallax = (value: MotionValue<number>, distance: number) => {
-    return useTransform(value, [0, 1], [-distance, distance])
-  }
-
-  const { scrollYProgress: pricingYProgress } = useScroll()
-  // const pricingParallax = useParallax(pricingYProgress, 100)
-
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
-  const [showLoginModal, setShowLoginModal] = useState(false)
-  const [savedItems, setSavedItems] = useState<any[]>([])
-  const [toast, setToast] = useState({ message: "", type: "success", visible: false })
-
-  const showToast = useCallback(
-    (message: string, type: "success" | "error" = "success") => {
-      setToast({ message, type, visible: true })
-      setTimeout(() => {
-        setToast({ ...toast, visible: false })
-      }, 3000)
-    },
-    [toast],
-  )
-
-  const handleSaveItem = useCallback(
-    (item: any) => {
-      if (!isLoggedIn) {
-        setShowLoginModal(true)
-        return
-      }
-      if (savedItems.some((savedItem) => savedItem.id === item.id)) {
-        setSavedItems(savedItems.filter((savedItem) => savedItem.id !== item.id))
-        showToast("Removed from saved items")
-      } else {
-        setSavedItems([...savedItems, item])
-        showToast("Added to saved items")
-      }
-    },
-    [isLoggedIn, savedItems, showToast],
-  )
+  
 
   // Add mobile menu state
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
